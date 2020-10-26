@@ -35,19 +35,22 @@ module FourDigitLEDdriver(
     output g,
     output dp
     );
-
+reg power_down = 1'b0;
 wire CLKDV_OUT;
-wire CLKIN1 ;
+reg CLKIN1 = 1'b0;
 wire DEBNC_RST;
 //wire DEBNC_BTN; //mono gia to merosc
 reg [5:0] time_counter; // gia to meros d (kanonika prpeei na einai 22 bit
-reg [3:0] counter;//gia ta an0 an1 an2 an3
+reg [3:0] an_counter;//gia ta an0 an1 an2 an3
 
 //gia tous xaraktires, arxikopoihsh sto mhden kai +1 kathe fora 
 //poy o counter odhgei ena apo ola ta an0 an1 an2 an3
 reg [3:0] char;
-
 wire [7:0] ledsigns_temp;
+
+reg SYNC_DEBNC_BTN;
+reg SYNC_DEBNC_RST;
+reg SYNC_DEBNC_RST_temp;
 
 //mnhmh gia to minima
 reg [3:0] message [0:15];
@@ -57,17 +60,33 @@ reg [3:0] message_counter_an1;
 reg [3:0] message_counter_an2;
 reg [3:0] message_counter_an3;
 
+reg [3:0]clock_counter = 4'b0000;
 
-assign CLKIN1 = clk;
+always@(posedge clk)
+begin
+	clock_counter = clock_counter + 4'b0001;
+	if(clock_counter == 4'b1111)
+	begin
+		CLKIN1 = 1'b1;
+	end
+	else
+	begin
+		CLKIN1 = 1'b0;
+	end
+end
+
+//assign CLKIN1 = clk;
 
 //debouncing button
+
+//only for part c
 /*
 one_bit_debounce user_button_debounce (
     .clk(CLKIN1), 
     .BNC_SIGN(button), 
     .DEBNC_SIGN(DEBNC_BTN)
     );
-	 */
+*/
 
 //debouncing reset
 one_bit_debounce reset_debounce (
@@ -76,10 +95,18 @@ one_bit_debounce reset_debounce (
     .DEBNC_SIGN(DEBNC_RST)
     );
 
-//gia to mynhma
-always@(posedge CLKIN1 or posedge DEBNC_RST) //to roloi tha ayksanei enan metrith
+//sychronize button and reset
+always@(posedge CLKIN1)
 begin
-	if(DEBNC_RST == 1)
+	SYNC_DEBNC_RST_temp <= DEBNC_RST;
+	SYNC_DEBNC_RST <= SYNC_DEBNC_RST_temp ;
+	//SYNC_DEBNC_BTN <= DEBNC_BTN;//only for part C
+end
+
+//gia to mynhma
+always@(posedge CLKIN1 or posedge SYNC_DEBNC_RST) //to roloi tha ayksanei enan metrith
+begin
+	if(SYNC_DEBNC_RST == 1)
 	begin
 		//mnhmh
 		message[0] = 4'b0000;
@@ -123,17 +150,17 @@ end
 
 
 //gia to decode kai thn ektypwsh twn arithmwn
-always@(posedge CLKIN1 or posedge DEBNC_RST)
+always@(posedge CLKIN1 or posedge SYNC_DEBNC_RST)
 begin
-	if(DEBNC_RST == 1)
+	if(SYNC_DEBNC_RST == 1)
 	begin
-		counter = 4'b1111;
+		an_counter = 4'b1111;
 		char = 4'b1111;
 	end
 	else
 	begin
-		counter = counter + 4'b0001;
-		case(counter)
+		an_counter = an_counter + 4'b0001;
+		case(an_counter)
 		
 			4'b0010: begin an0 = 1; an1 = 1; an2 = 1; an3 = 0; end
 			4'b0110: begin an0 = 1; an1 = 1; an2 = 0; an3 = 1; end
@@ -175,6 +202,66 @@ assign e = ledsigns_temp[3];
 assign f = ledsigns_temp[2];
 assign g = ledsigns_temp[1];
 assign dp = ledsigns_temp[0];
-
-
+/*
+MMCME2_BASE #(
+      .BANDWIDTH("OPTIMIZED"),   // Jitter programming (OPTIMIZED, HIGH, LOW)
+      .CLKFBOUT_MULT_F(5.0),     // Multiply value for all CLKOUT (2.000-64.000).
+      .CLKFBOUT_PHASE(0.0),      // Phase offset in degrees of CLKFB (-360.000-360.000).
+      .CLKIN1_PERIOD(10.0),       // Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
+      // CLKOUT0_DIVIDE - CLKOUT6_DIVIDE: Divide amount for each CLKOUT (1-128)
+      .CLKOUT1_DIVIDE(32),
+      .CLKOUT2_DIVIDE(1),
+      .CLKOUT3_DIVIDE(1),
+      .CLKOUT4_DIVIDE(1),
+      .CLKOUT5_DIVIDE(1),
+      .CLKOUT6_DIVIDE(1),
+      .CLKOUT0_DIVIDE_F(1.0),    // Divide amount for CLKOUT0 (1.000-128.000).
+      // CLKOUT0_DUTY_CYCLE - CLKOUT6_DUTY_CYCLE: Duty cycle for each CLKOUT (0.01-0.99).
+      .CLKOUT0_DUTY_CYCLE(0.5),
+      .CLKOUT1_DUTY_CYCLE(0.5),
+      .CLKOUT2_DUTY_CYCLE(0.5),
+      .CLKOUT3_DUTY_CYCLE(0.5),
+      .CLKOUT4_DUTY_CYCLE(0.5),
+      .CLKOUT5_DUTY_CYCLE(0.5),
+      .CLKOUT6_DUTY_CYCLE(0.5),
+      // CLKOUT0_PHASE - CLKOUT6_PHASE: Phase offset for each CLKOUT (-360.000-360.000).
+      .CLKOUT0_PHASE(0.0),
+      .CLKOUT1_PHASE(0.0),
+      .CLKOUT2_PHASE(0.0),
+      .CLKOUT3_PHASE(0.0),
+      .CLKOUT4_PHASE(0.0),
+      .CLKOUT5_PHASE(0.0),
+      .CLKOUT6_PHASE(0.0),
+      .CLKOUT4_CASCADE("FALSE"), // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
+      .DIVCLK_DIVIDE(1),         // Master division value (1-106)
+      .REF_JITTER1(0.0),         // Reference input jitter in UI (0.000-0.999).
+      .STARTUP_WAIT("FALSE")     // Delays DONE until MMCM is locked (FALSE, TRUE)
+   )
+   MMCME2_BASE_inst (
+      // Clock Outputs: 1-bit (each) output: User configurable clock outputs
+      .CLKOUT0(CLKOUT0),     // 1-bit output: CLKOUT0
+      .CLKOUT0B(CLKOUT0B),   // 1-bit output: Inverted CLKOUT0
+      .CLKOUT1(CLKOUT1),     // 1-bit output: CLKOUT1
+      .CLKOUT1B(CLKOUT1B),   // 1-bit output: Inverted CLKOUT1
+      .CLKOUT2(CLKOUT2),     // 1-bit output: CLKOUT2
+      .CLKOUT2B(CLKOUT2B),   // 1-bit output: Inverted CLKOUT2
+      .CLKOUT3(CLKOUT3),     // 1-bit output: CLKOUT3
+      .CLKOUT3B(CLKOUT3B),   // 1-bit output: Inverted CLKOUT3
+      .CLKOUT4(CLKOUT4),     // 1-bit output: CLKOUT4
+      .CLKOUT5(CLKOUT5),     // 1-bit output: CLKOUT5
+      .CLKOUT6(CLKOUT6),     // 1-bit output: CLKOUT6
+      // Feedback Clocks: 1-bit (each) output: Clock feedback ports
+      .CLKFBOUT(CLKFBOUT),   // 1-bit output: Feedback clock
+      .CLKFBOUTB(CLKFBOUTB), // 1-bit output: Inverted CLKFBOUT
+      // Status Ports: 1-bit (each) output: MMCM status ports
+      .LOCKED(LOCKED),       // 1-bit output: LOCK
+      // Clock Inputs: 1-bit (each) input: Clock input
+      .CLKIN1(clk),       // 1-bit input: Clock
+      // Control Ports: 1-bit (each) input: MMCM control ports
+      .PWRDWN(power_down),       // 1-bit input: Power-down
+      .RST(reset),             // 1-bit input: Reset
+      // Feedback Clocks: 1-bit (each) input: Clock feedback ports
+      .CLKFBIN(clk)      // 1-bit input: Feedback clock
+   );
+*/
 endmodule
