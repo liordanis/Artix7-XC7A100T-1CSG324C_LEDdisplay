@@ -70,7 +70,7 @@ module testbench;
 	end
 	*/
 	always begin
-		#40 clk = ~clk;
+		#5 clk = ~clk;
 	end
 	initial begin
 		
@@ -80,22 +80,8 @@ module testbench;
 		//button = 0;
 
 		// Wait 100 ns for global reset to finish
-		#1000;
+		#10000;
 		reset = 0;
-		/*
-		for(i = 0; i < 100; i = i + 1)
-		begin
-			#1630
-			button = 1;
-			#20
-			button = 0;
-			#10 
-			button = 1;
-			#1000;
-			button = 0;
-		end
-		*/
-		
 		
         
 		// Add stimulus here
